@@ -1,0 +1,126 @@
+{% extends 'projects/base.html' %}
+{% block title %}Dashboard — TaskFlow{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 1.2rem; }
+    .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+    .stat-sub { font-size: 0.75rem; color: var(--text3); margin-top: 0.2rem; }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+    .section-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+    .project-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2); padding: 1.2rem; margin-bottom: 0.75rem; text-decoration: none; color: inherit; display: block; transition: border-color 0.15s, transform 0.15s; }
+    .project-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .project-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .project-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .project-name { font-weight: 700; font-size: 0.95rem; }
+    .project-desc { font-size: 0.8rem; color: var(--text2); margin-bottom: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .progress-bar { height: 4px; background: var(--bg4); border-radius: 100px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 100px; transition: width 0.3s; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text3); margin-top: 0.4rem; }
+    .task-item { padding: 0.75rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+    .task-item:hover { border-color: var(--border2); }
+    .task-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+    .task-title { font-size: 0.85rem; font-weight: 600; flex: 1; }
+    .task-due { font-size: 0.72rem; color: var(--text3); }
+    .empty-state { text-align: center; padding: 2rem; color: var(--text3); }
+    .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .dashboard-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Projects</div>
+        <div class="stat-value" style="color: var(--accent);">{{ projects.count }}</div>
+        <div class="stat-sub">Active workspaces</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">My Tasks</div>
+        <div class="stat-value" style="color: var(--yellow);">{{ my_tasks.count }}</div>
+        <div class="stat-sub">Pending tasks</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Notifications</div>
+        <div class="stat-value" style="color: var(--red);">{{ notifications.count }}</div>
+        <div class="stat-sub">Unread</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Welcome</div>
+        <div class="stat-value" style="font-size: 1.3rem; color: var(--green);">👋 {{ user.username }}</div>
+        <div class="stat-sub">Good to have you!</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Projects -->
+    <div>
+        <div class="section-title">
+            My Projects
+            <a href="{% url 'project_create' %}" class="btn btn-primary btn-sm">+ New</a>
+        </div>
+        {% for project in projects %}
+        <a href="{% url 'project_detail' project.pk %}" class="project-card">
+            <div class="project-header">
+                <div class="project-dot" style="background: {{ project.color }};"></div>
+                <div class="project-name">{{ project.name }}</div>
+                <span class="text-xs" style="margin-left: auto;">{{ project.get_task_count }} tasks</span>
+            </div>
+            {% if project.description %}
+            <div class="project-desc">{{ project.description }}</div>
+            {% endif %}
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ project.get_progress }}%;"></div>
+            </div>
+            <div class="progress-label">
+                <span>{{ project.get_completed_count }}/{{ project.get_task_count }} done</span>
+                <span>{{ project.get_progress }}%</span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon">📁</div>
+            <p>No projects yet. <a href="{% url 'project_create' %}" style="color: var(--accent);">Create one!</a></p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- My Tasks -->
+    <div>
+        <div class="section-title">My Assigned Tasks</div>
+        {% for task in my_tasks %}
+        <a href="{% url 'task_detail' task.pk %}" class="task-item">
+            <div class="task-dot" style="background: {% if task.priority == 'urgent' %}var(--red){% elif task.priority == 'high' %}var(--orange){% elif task.priority == 'medium' %}var(--yellow){% else %}var(--green){% endif %};"></div>
+            <div>
+                <div class="task-title">{{ task.title }}</div>
+                <div class="task-due">{{ task.project.name }} {% if task.due_date %}· Due {{ task.due_date }}{% endif %}</div>
+            </div>
+            <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+        </a>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <p>No tasks assigned yet!</p>
+        </div>
+        {% endfor %}
+
+        <!-- Recent Notifications -->
+        <div class="section-title" style="margin-top: 1.5rem;">Recent Notifications</div>
+        {% for notif in notifications %}
+        <div class="task-item">
+            <div class="task-dot" style="background: var(--accent);"></div>
+            <div class="task-title" style="font-size: 0.8rem; font-weight: 500;">{{ notif.message }}</div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <p>No notifications</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'projects/base.html' %}
+{% block title %}Projects — TaskFlow{% endblock %}
+{% block page_title %}All Projects{% endblock %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+        <div style="font-size: 0.85rem; color: var(--text3);">{{ projects.count }} project{{ projects.count|pluralize }}</div>
+    </div>
+    <a href="{% url 'project_create' %}" class="btn btn-primary">+ New Project</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+    {% for project in projects %}
+    <a href="{% url 'project_detail' project.pk %}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="transition: border-color 0.15s, transform 0.15s; cursor: pointer;" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div style="width: 36px; height: 36px; background: {{ project.color }}22; border: 2px solid {{ project.color }}; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">📁</div>
+                <div>
+                    <div style="font-weight: 700;">{{ project.name }}</div>
+                    <div style="font-size: 0.72rem; color: var(--text3);">{{ project.get_task_count }} tasks</div>
+                </div>
+                {% if project.owner == request.user %}<span style="margin-left: auto; font-size: 0.65rem; background: rgba(124,106,255,0.1); color: var(--accent); padding: 0.15rem 0.4rem; border-radius: 100px; font-weight: 700;">OWNER</span>{% endif %}
+            </div>
+            {% if project.description %}<div style="font-size: 0.82rem; color: var(--text2); margin-bottom: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ project.description }}</div>{% endif %}
+            <div style="height: 4px; background: var(--bg4); border-radius: 100px; overflow: hidden; margin-bottom: 0.4rem;">
+                <div style="height: 100%; width: {{ project.get_progress }}%; background: {{ project.color }}; border-radius: 100px;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text3);">
+                <span>{{ project.get_completed_count }}/{{ project.get_task_count }} done</span>
+                <span>{{ project.get_progress }}%</span>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text3);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+        <p>No projects yet. <a href="{% url 'project_create' %}" style="color: var(--accent);">Create your first project!</a></p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

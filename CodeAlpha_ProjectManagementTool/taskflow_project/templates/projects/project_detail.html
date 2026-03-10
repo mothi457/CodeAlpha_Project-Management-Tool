@@ -1,0 +1,280 @@
+{% extends 'projects/base.html' %}
+{% block title %}{{ project.name }} — TaskFlow{% endblock %}
+{% block page_title %}{{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .project-meta { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .project-color-dot { width: 14px; height: 14px; border-radius: 50%; }
+    .project-desc { color: var(--text2); font-size: 0.85rem; }
+    .progress-row { display: flex; align-items: center; gap: 0.75rem; }
+    .progress-bar { flex: 1; height: 6px; background: var(--bg4); border-radius: 100px; overflow: hidden; max-width: 200px; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 100px; }
+
+    /* KANBAN */
+    .kanban-wrapper { overflow-x: auto; padding-bottom: 1rem; }
+    .kanban { display: flex; gap: 1rem; min-width: max-content; align-items: flex-start; }
+    .board-col { width: 280px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); display: flex; flex-direction: column; max-height: calc(100vh - 200px); }
+    .board-header { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .board-name { font-weight: 700; font-size: 0.85rem; }
+    .board-count { background: var(--bg4); color: var(--text3); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 100px; }
+    .board-tasks { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+
+    /* TASK CARD */
+    .task-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+    .task-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .task-card-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem; line-height: 1.4; }
+    .task-card-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .task-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.6rem; }
+    .task-assignee { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--text3); }
+    .mini-avatar { width: 20px; height: 20px; background: var(--accent); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: white; text-transform: uppercase; }
+    .comment-count { font-size: 0.72rem; color: var(--text3); display: flex; align-items: center; gap: 0.2rem; }
+    .add-task-btn { width: 100%; padding: 0.5rem; background: transparent; border: 1px dashed var(--border); border-radius: 8px; color: var(--text3); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; margin: 0.5rem 0.75rem; width: calc(100% - 1.5rem); }
+    .add-task-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,106,255,0.05); }
+
+    /* MEMBERS */
+    .members-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); padding: 1rem; margin-bottom: 1.5rem; }
+    .members-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .member-chip { display: flex; align-items: center; gap: 0.4rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 100px; padding: 0.25rem 0.6rem 0.25rem 0.25rem; font-size: 0.78rem; }
+    .member-avatar { width: 22px; height: 22px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; text-transform: uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Project Meta -->
+<div class="members-section">
+    <div class="project-meta">
+        <div class="project-color-dot" style="background: {{ project.color }};"></div>
+        <span style="font-weight: 700;">{{ project.name }}</span>
+        {% if project.description %}<span class="project-desc">{{ project.description }}</span>{% endif %}
+        <div class="progress-row" style="margin-left: auto;">
+            <span class="text-xs">{{ project.get_progress }}% complete</span>
+            <div class="progress-bar"><div class="progress-fill" style="width:{{ project.get_progress }}%;"></div></div>
+        </div>
+    </div>
+
+    <!-- Members -->
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <span style="font-size: 0.78rem; font-weight: 600; color: var(--text3);">MEMBERS</span>
+        <div class="members-row">
+            {% for member in members %}
+            <div class="member-chip">
+                <div class="member-avatar">{{ member.username|first }}</div>
+                {{ member.username }}
+                {% if member == project.owner %}<span style="color: var(--accent); font-size: 0.65rem;">owner</span>{% endif %}
+                {% if member != project.owner and project.owner == request.user %}
+                <span onclick="removeMember({{ member.id }})" style="cursor:pointer; color: var(--text3); margin-left: 0.2rem;">×</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if project.owner == request.user and all_users %}
+        <button onclick="document.getElementById('addMemberModal').classList.add('open')" class="btn btn-ghost btn-sm">+ Add Member</button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KANBAN BOARD -->
+<div class="kanban-wrapper">
+    <div class="kanban" id="kanban">
+        {% for board in boards %}
+        <div class="board-col" data-board-id="{{ board.id }}">
+            <div class="board-header">
+                <span class="board-name">{{ board.name }}</span>
+                <span class="board-count">{{ board.tasks.count }}</span>
+            </div>
+            <div class="board-tasks" id="board-{{ board.id }}">
+                {% for task in board.tasks.all %}
+                <div class="task-card" onclick="window.location='/task/{{ task.pk }}/'" data-task-id="{{ task.pk }}">
+                    <div class="task-card-title">{{ task.title }}</div>
+                    <div class="task-card-meta">
+                        <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                        {% if task.due_date %}<span class="text-xs">📅 {{ task.due_date }}</span>{% endif %}
+                    </div>
+                    <div class="task-card-footer">
+                        <div class="task-assignee">
+                            {% if task.assigned_to %}
+                            <div class="mini-avatar">{{ task.assigned_to.username|first }}</div>
+                            {{ task.assigned_to.username }}
+                            {% else %}
+                            <span>Unassigned</span>
+                            {% endif %}
+                        </div>
+                        <div class="comment-count">💬 {{ task.comments.count }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="add-task-btn" onclick="openCreateTask({{ board.id }}, '{{ board.name }}')">+ Add Task</button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- CREATE TASK MODAL -->
+<div class="modal-overlay" id="createTaskModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">➕ Create Task</div>
+            <button class="modal-close" onclick="document.getElementById('createTaskModal').classList.remove('open')">✕</button>
+        </div>
+        <input type="hidden" id="taskBoardId">
+        <div class="form-group">
+            <label class="form-label">Task Title *</label>
+            <input type="text" class="form-control" id="taskTitle" placeholder="What needs to be done?">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" id="taskDesc" rows="3" placeholder="Add details..."></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select class="form-control" id="taskPriority">
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="high">🟠 High</option>
+                    <option value="urgent">🔴 Urgent</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Due Date</label>
+                <input type="date" class="form-control" id="taskDueDate">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Assign To</label>
+            <select class="form-control" id="taskAssignee">
+                <option value="">Unassigned</option>
+                {% for member in members %}
+                <option value="{{ member.id }}">{{ member.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="document.getElementById('createTaskModal').classList.remove('open')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitTask()">Create Task</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD MEMBER MODAL -->
+<div class="modal-overlay" id="addMemberModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">👥 Add Member</div>
+            <button class="modal-close" onclick="document.getElementById('addMemberModal').classList.remove('open')">✕</button>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Select User</label>
+            <select class="form-control" id="memberSelect">
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="document.getElementById('addMemberModal').classList.remove('open')">Cancel</button>
+            <button class="btn btn-primary" onclick="addMember()">Add Member</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const PROJECT_ID = {{ project.pk }};
+
+    function openCreateTask(boardId, boardName) {
+        document.getElementById('taskBoardId').value = boardId;
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDesc').value = '';
+        document.getElementById('createTaskModal').classList.add('open');
+        document.getElementById('taskTitle').focus();
+    }
+
+    function submitTask() {
+        const title = document.getElementById('taskTitle').value.trim();
+        if (!title) { showToast('Please enter a task title!'); return; }
+
+        fetch(`/project/{{ project.pk }}/task/create/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({
+                title,
+                description: document.getElementById('taskDesc').value,
+                priority: document.getElementById('taskPriority').value,
+                due_date: document.getElementById('taskDueDate').value,
+                assigned_to: document.getElementById('taskAssignee').value,
+                board_id: document.getElementById('taskBoardId').value,
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('createTaskModal').classList.remove('open');
+                showToast('✅ Task created!');
+                // Add card to board
+                const boardId = document.getElementById('taskBoardId').value;
+                const boardEl = document.getElementById('board-' + boardId);
+                const t = data.task;
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.setAttribute('data-task-id', t.id);
+                card.onclick = () => window.location = '/task/' + t.id + '/';
+                card.innerHTML = `
+                    <div class="task-card-title">${t.title}</div>
+                    <div class="task-card-meta">
+                        <span class="priority-badge priority-${t.priority}">${t.priority}</span>
+                        ${t.due_date ? `<span class="text-xs">📅 ${t.due_date}</span>` : ''}
+                    </div>
+                    <div class="task-card-footer">
+                        <div class="task-assignee">${t.assigned_to ? t.assigned_to : 'Unassigned'}</div>
+                        <div class="comment-count">💬 0</div>
+                    </div>`;
+                boardEl.appendChild(card);
+            }
+        });
+    }
+
+    function addMember() {
+        const userId = document.getElementById('memberSelect').value;
+        fetch('/project/{{ project.pk }}/add-member/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken') },
+            body: `user_id=${userId}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('addMemberModal').classList.remove('open');
+                showToast('✅ Member added!');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+
+    function removeMember(userId) {
+        if (!confirm('Remove this member?')) return;
+        fetch('/project/{{ project.pk }}/remove-member/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken') },
+            body: `user_id=${userId}`
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) { showToast('Member removed'); setTimeout(() => location.reload(), 800); } });
+    }
+
+    // WebSocket for real-time task updates
+    try {
+        const ws = new WebSocket(`ws://${window.location.host}/ws/project/${PROJECT_ID}/`);
+        ws.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'task_update') {
+                showToast('⚡ Task updated in real-time!');
+            }
+        };
+    } catch(e) {}
+</script>
+{% endblock %}

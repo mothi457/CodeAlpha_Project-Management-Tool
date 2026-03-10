@@ -1,0 +1,36 @@
+{% extends 'projects/base.html' %}
+{% block title %}Notifications — TaskFlow{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block content %}
+<div style="max-width: 640px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="font-size: 0.85rem; color: var(--text3);">{{ notifications.count }} notification{{ notifications.count|pluralize }}</div>
+        <button onclick="markAllRead()" class="btn btn-ghost btn-sm">Mark all read</button>
+    </div>
+    {% for notif in notifications %}
+    <div class="card" style="margin-bottom: 0.5rem; {% if not notif.is_read %}border-color: var(--accent);{% endif %}">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if not notif.is_read %}var(--accent){% else %}var(--bg4){% endif %}; margin-top: 0.4rem; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+                <div style="font-size: 0.875rem; font-weight: {% if not notif.is_read %}600{% else %}400{% endif %};">{{ notif.message }}</div>
+                <div style="font-size: 0.72rem; color: var(--text3); margin-top: 0.2rem;">{{ notif.created_at|date:"d M Y, g:i A" }}</div>
+            </div>
+            {% if notif.link %}<a href="{{ notif.link }}" class="btn btn-ghost btn-sm">View →</a>{% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 4rem; color: var(--text3);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
+        <p>No notifications yet!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function markAllRead() {
+    fetch('/notifications/read/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+    .then(() => { showToast('All marked as read'); setTimeout(() => location.reload(), 800); });
+}
+</script>
+{% endblock %}

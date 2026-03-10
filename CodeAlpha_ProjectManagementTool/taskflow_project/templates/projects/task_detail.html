@@ -1,0 +1,208 @@
+{% extends 'projects/base.html' %}
+{% block title %}{{ task.title }} — TaskFlow{% endblock %}
+{% block page_title %}Task Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+    .task-title-big { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.75rem; }
+    .task-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .status-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 100px; background: rgba(124,106,255,0.1); color: var(--accent); }
+    .task-desc { color: var(--text2); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.5rem; white-space: pre-wrap; }
+    .section-divider { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text3); margin-bottom: 0.75rem; }
+    .comment-item { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+    .comment-avatar { width: 30px; height: 30px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0; text-transform: uppercase; }
+    .comment-bubble { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.9rem; flex: 1; }
+    .comment-author { font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .comment-text { font-size: 0.85rem; color: var(--text2); line-height: 1.5; }
+    .comment-time { font-size: 0.7rem; color: var(--text3); margin-top: 0.2rem; }
+    .attachment-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.8rem; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.5rem; }
+    .attachment-icon { font-size: 1.2rem; }
+    .attachment-name { font-size: 0.82rem; font-weight: 600; flex: 1; }
+    .info-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.83rem; }
+    .info-label { color: var(--text3); font-weight: 600; }
+    .status-select { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; font-family: inherit; font-size: 0.85rem; color: var(--text); outline: none; width: 100%; margin-top: 0.5rem; }
+    @media (max-width: 900px) { .task-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-ghost btn-sm">← Back to {{ project.name }}</a>
+</div>
+
+<div class="task-layout">
+    <div>
+        <div class="card">
+            <div class="task-title-big">{{ task.title }}</div>
+            <div class="task-badges">
+                <span class="priority-badge priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                <span class="status-badge">{{ task.get_status_display }}</span>
+                {% if task.due_date %}<span class="text-xs" style="background: var(--bg4); padding: 0.25rem 0.6rem; border-radius: 100px;">📅 {{ task.due_date }}</span>{% endif %}
+            </div>
+            {% if task.description %}
+            <div class="task-desc">{{ task.description }}</div>
+            {% endif %}
+        </div>
+
+        <!-- COMMENTS -->
+        <div class="card" style="margin-top: 1rem;">
+            <div class="section-divider">💬 Comments ({{ comments.count }})</div>
+            <div id="comments-list">
+                {% for comment in comments %}
+                <div class="comment-item">
+                    <div class="comment-avatar">{{ comment.author.username|first }}</div>
+                    <div class="comment-bubble">
+                        <div class="comment-author">{{ comment.author.username }}</div>
+                        <div class="comment-text">{{ comment.content }}</div>
+                        <div class="comment-time">{{ comment.created_at|date:"d M Y, g:i A" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text3); font-size: 0.85rem; margin-bottom: 1rem;">No comments yet. Be the first!</p>
+                {% endfor %}
+            </div>
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                <div class="comment-avatar">{{ request.user.username|first }}</div>
+                <div style="flex: 1;">
+                    <textarea class="form-control" id="commentInput" rows="2" placeholder="Write a comment..."></textarea>
+                    <button class="btn btn-primary btn-sm" style="margin-top: 0.5rem;" onclick="submitComment()">Post Comment</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ATTACHMENTS -->
+        <div class="card" style="margin-top: 1rem;">
+            <div class="section-divider">📎 Attachments ({{ attachments.count }})</div>
+            <div id="attachments-list">
+                {% for att in attachments %}
+                <div class="attachment-item" id="att-{{ att.pk }}">
+                    <div class="attachment-icon">📄</div>
+                    <div class="attachment-name">{{ att.filename }}</div>
+                    <a href="{{ att.file.url }}" target="_blank" class="btn btn-ghost btn-sm">Download</a>
+                    <button onclick="deleteAttachment({{ att.pk }})" class="btn btn-danger btn-sm">✕</button>
+                </div>
+                {% empty %}
+                <p style="color: var(--text3); font-size: 0.85rem; margin-bottom: 1rem;">No attachments yet.</p>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 0.75rem;">
+                <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileInput').click()">📎 Upload File</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR INFO -->
+    <div>
+        <div class="card">
+            <div class="section-divider">Task Info</div>
+            <div class="info-row"><span class="info-label">Project</span><a href="{% url 'project_detail' project.pk %}" style="color: var(--accent); text-decoration: none;">{{ project.name }}</a></div>
+            <div class="info-row"><span class="info-label">Assigned To</span><span>{{ task.assigned_to.username|default:"Unassigned" }}</span></div>
+            <div class="info-row"><span class="info-label">Created By</span><span>{{ task.created_by.username }}</span></div>
+            <div class="info-row"><span class="info-label">Priority</span><span class="priority-badge priority-{{ task.priority }}">{{ task.get_priority_display }}</span></div>
+            <div class="info-row" style="border: none;"><span class="info-label">Created</span><span>{{ task.created_at|date:"d M Y" }}</span></div>
+
+            <div style="margin-top: 1rem;">
+                <div class="section-divider">Update Status</div>
+                <select class="status-select" onchange="updateStatus(this.value)">
+                    <option value="todo" {% if task.status == 'todo' %}selected{% endif %}>📋 To Do</option>
+                    <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>⚡ In Progress</option>
+                    <option value="review" {% if task.status == 'review' %}selected{% endif %}>👀 In Review</option>
+                    <option value="done" {% if task.status == 'done' %}selected{% endif %}>✅ Done</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button onclick="deleteTask()" class="btn btn-danger btn-sm" style="width: 100%; justify-content: center;">🗑 Delete Task</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function submitComment() {
+        const content = document.getElementById('commentInput').value.trim();
+        if (!content) return;
+        fetch('/task/{{ task.pk }}/comment/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ content })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const c = data.comment;
+                const list = document.getElementById('comments-list');
+                list.innerHTML += `
+                    <div class="comment-item">
+                        <div class="comment-avatar">${c.author[0].toUpperCase()}</div>
+                        <div class="comment-bubble">
+                            <div class="comment-author">${c.author}</div>
+                            <div class="comment-text">${c.content}</div>
+                            <div class="comment-time">${c.created_at}</div>
+                        </div>
+                    </div>`;
+                document.getElementById('commentInput').value = '';
+                showToast('💬 Comment added!');
+            }
+        });
+    }
+
+    function updateStatus(status) {
+        fetch('/task/{{ task.pk }}/status/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ status })
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) showToast('✅ Status updated!'); });
+    }
+
+    function uploadFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const form = new FormData();
+        form.append('file', file);
+        fetch('/task/{{ task.pk }}/attach/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: form
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('attachments-list').innerHTML += `
+                    <div class="attachment-item" id="att-${data.id}">
+                        <div class="attachment-icon">📄</div>
+                        <div class="attachment-name">${data.filename}</div>
+                        <a href="${data.url}" target="_blank" class="btn btn-ghost btn-sm">Download</a>
+                        <button onclick="deleteAttachment(${data.id})" class="btn btn-danger btn-sm">✕</button>
+                    </div>`;
+                showToast('📎 File uploaded!');
+            }
+        });
+    }
+
+    function deleteAttachment(id) {
+        fetch(`/attachment/${id}/delete/`, {
+            method: 'GET',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) { document.getElementById('att-' + id).remove(); showToast('File deleted'); } });
+    }
+
+    function deleteTask() {
+        if (!confirm('Delete this task?')) return;
+        fetch('/task/{{ task.pk }}/delete/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) window.location = '/project/{{ project.pk }}/'; });
+    }
+</script>
+{% endblock %}
