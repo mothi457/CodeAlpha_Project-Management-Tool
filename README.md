@@ -77,6 +77,7 @@ http://127.0.0.1:8000
 ---
 
 ## 🔐 Login Credentials
+
 | Username | Password |    Role    |
 | -------- | -------- | ---------- |
 |  admin   | admin123 |  Superuser |
@@ -86,15 +87,16 @@ http://127.0.0.1:8000
 ---
 
 ## 🛠️ Admin Panel
-
+```bash
 URL      : http://127.0.0.1:8000/admin
 Username : admin
 Password : admin123
-
+```
 ---
 
 ## 📁 Project Structure
 
+```
 taskflow_project/
 ├── taskflow/                   # Django settings & config
 │   ├── settings.py
@@ -124,10 +126,12 @@ taskflow_project/
 ├── setup_data.py               # Sample data script
 ├── manage.py
 └── requirements.txt
+```
 
 ---
 
 ## 🌐 WebSocket Endpoints
+
 |                Endpoint               |          Purpose          |
 | ------------------------------------- | ------------------------- |
 | ws://localhost:8000/ws/notifications/ | Real-time notifications   |
@@ -136,6 +140,7 @@ taskflow_project/
 ---
 
 ## 📸 Pages Overview
+
 |    Page      |        URL        |
 | ------------ | ----------------- |
 |Dashboard     | /dashboard/       |
@@ -152,8 +157,8 @@ taskflow_project/
 
 **Mothilal**
 
-- 🔗 LinkedIn : www.linkedin.com/in/mothilal-b-659788326
-- 🐙 GitHub   : https://github.com/mothi457
+- 🔗 LinkedIn : [www.linkedin.com/in/mothilal-b-659788326](https://www.linkedin.com/in/mothilal-b-659788326)
+- 🐙 GitHub   : [https://github.com/mothi457](https://github.com/mothi457)
 - 📧 Email    : lalbrothers2430@gmail.com
 
 ---
