@@ -78,11 +78,11 @@ http://127.0.0.1:8000
 
 ## 🔐 Login Credentials
 
-| Username | Password |    Role    |
-| -------- | -------- | ---------- |
-|  admin   | admin123 |  Superuser |
-|  alice   | alice123 |   Member   |
-|   bob    |  bob123  |   Member   |
+|  Username  |  Password  |    Role    |
+| ---------- | ---------- | ---------- |
+|  `admin`   | `admin123` |  Superuser |
+|  `alice`   | `alice123` |   Member   |
+|   `bob`    |  `bob123`  |   Member   |
 
 ---
 
@@ -132,24 +132,24 @@ taskflow_project/
 
 ## 🌐 WebSocket Endpoints
 
-|                Endpoint               |          Purpose          |
-| ------------------------------------- | ------------------------- |
-| ws://localhost:8000/ws/notifications/ | Real-time notifications   |
-| ws://localhost:8000/ws/project/<id>/  | Live project task updates |
+|                 Endpoint                |          Purpose          |
+| --------------------------------------- | ------------------------- |
+| `ws://localhost:8000/ws/notifications/` | Real-time notifications   |
+| `ws://localhost:8000/ws/project/<id>/`  | Live project task updates |
 
 ---
 
 ## 📸 Pages Overview
 
-|    Page      |        URL        |
-| ------------ | ----------------- |
-|Dashboard     | /dashboard/       |
-|All Projects  | /projects/        |
-|Create Project| /projects/create/ |
-|Project Board | /project/<id>/    |
-|Task Detail   | /task/<id>/       |
-|Notifications | /notifications/   |
-|Admin Panel   | /admin/           |
+|    Page      |         URL         |
+| ------------ | ------------------- |
+|Dashboard     | `/dashboard/`       |
+|All Projects  | `/projects/`        |
+|Create Project| `/projects/create/` |
+|Project Board | `/project/<id>/`    |
+|Task Detail   | `/task/<id>/`       |
+|Notifications | `/notifications/`   |
+|Admin Panel   | `/admin/`           |
 
 ---
 
