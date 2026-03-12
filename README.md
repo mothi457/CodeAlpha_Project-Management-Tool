@@ -98,32 +98,32 @@ Password : admin123
 
 ```
 taskflow_project/
-├── taskflow/                   # Django settings & config
+├── taskflow/
 │   ├── settings.py
 │   ├── urls.py
-│   ├── asgi.py                 # WebSocket config
+│   ├── asgi.py
 │   └── wsgi.py
-├── projects/                   # Main app
-│   ├── models.py               # Project, Task, Comment, Attachment, Notification
-│   ├── views.py                # All page & AJAX views
-│   ├── urls.py                 # URL routes
-│   ├── admin.py                # Admin config
-│   ├── consumers.py            # WebSocket consumers
-│   └── routing.py              # WebSocket URL routing
-├── templates/
-│   └── projects/               # All HTML templates
-│       ├── base.html           # Sidebar, topbar, dark mode
-│       ├── dashboard.html      # Stats, tasks, notifications
-│       ├── project_detail.html # Kanban board
-│       ├── project_list.html   # All projects grid
-│       ├── project_form.html   # Create project
-│       ├── task_detail.html    # Task view, comments, attachments
-│       ├── notifications.html
-│       ├── login.html
-│       └── register.html
-├── static/                     # Static files
-├── media/                      # Uploaded attachments
-├── setup_data.py               # Sample data script
+├── projects/
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── admin.py
+│   ├── consumers.py
+│   ├── routing.py
+│   └── templatetags/        
+│       ├── __init__.py
+│       └── custom_filters.py
+├── templates/projects/
+│   ├── base.html
+│   ├── dashboard.html
+│   ├── project_detail.html
+│   ├── project_list.html
+│   ├── project_form.html    
+│   ├── task_detail.html
+│   ├── notifications.html
+│   ├── login.html
+│   └── register.html
+├── setup_data.py
 ├── manage.py
 └── requirements.txt
 ```
